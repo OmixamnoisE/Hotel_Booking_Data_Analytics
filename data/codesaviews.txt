@@ -1,0 +1,115 @@
+from django.shortcuts import render
+from django.db.models import Count
+from datetime import datetime
+
+import urllib
+from .models import Agents, Hotels, Reservations, Companies, Customers
+from django.http import JsonResponse
+
+def dashboard(request):
+    try:
+        # Overall counts
+        agent_count = Agents.objects.count()
+        company_count = Companies.objects.count()
+        customer_count = Customers.objects.count()
+        hotel_count = Hotels.objects.count()
+        reservation_count = Reservations.objects.count()
+
+        repeat_guest_count = Customers.objects.filter(is_repeated_guest=True).count()
+
+        reservations_per_hotel = Reservations.objects.values('hotel_id', 'hotel__hotel_name').annotate(
+            count=Count('hotel_id')).order_by('-count')
+
+        hotels_labels = [item['hotel__hotel_name'] for item in reservations_per_hotel]
+        hotels_values = [item['count'] for item in reservations_per_hotel]
+
+        # Filter reservations by statuses
+        cancelled_reservations = Reservations.objects.filter(reservation_status='Canceled').count()
+        checked_out_reservations = Reservations.objects.filter(reservation_status='Check-Out').count()
+        no_show_reservations = Reservations.objects.filter(reservation_status='No-Show').count()
+
+        total_reservations = reservation_count
+
+        # Calculate the percentages
+        cancelled_percent = (cancelled_reservations / total_reservations) * 100 if total_reservations else 0
+        checked_out_percent = (checked_out_reservations / total_reservations) * 100 if total_reservations else 0
+        no_show_percent = (no_show_reservations / total_reservations) * 100 if total_reservations else 0
+
+        hotels = Hotels.objects.values_list('hotel_name', flat=True).distinct()  # List of hotels
+        reservation_statuses = Reservations.objects.values_list('reservation_status', flat=True).distinct()  # Status options
+        countries = Customers.objects.values_list('country', flat=True).distinct()
+        customer_types = Reservations.objects.values_list('customer_type', flat=True).distinct()  # Customer type options
+        agents = Agents.objects.values_list('agent_name', flat=True).distinct()  # List of agents
+
+        print(f"Distinct reservation statuses: {reservation_statuses}")
+
+        # Aggregate reservation data by country
+        reservations_per_country = Reservations.objects.values('customer__country').annotate(reservation_count=Count('reservation_id'))
+
+        # Convert the data to a dictionary format (country: count)
+        country_data = {item['customer__country']: item['reservation_count'] for item in reservations_per_country}
+
+        
+
+        # Prepare context to pass to the template
+        context = {
+            'agent_count': agent_count,
+            'company_count': company_count,
+            'customer_count': customer_count,
+            'hotel_count': hotel_count,
+            'reservation_count': reservation_count,
+            'repeat_guest_count': repeat_guest_count,  # Add repeat guest count here
+            'hotels_labels': hotels_labels,
+            'hotels_values': hotels_values,
+            'hotels': hotels,
+            'reservation_statuses': reservation_statuses,
+            'countries': countries,
+            'customer_types': customer_types,
+            'agents': agents,
+
+            'cancelled_percent': cancelled_percent,
+            'checked_out_percent': checked_out_percent,
+            'no_show_percent': no_show_percent,
+
+            'country_data': country_data,
+        }
+        return render(request, 'data/dashboard.html', context,  {'country_data': country_data})
+
+    except Exception as e:
+        print(f"Error in dashboard view: {e}")
+        return render(request, 'data/dashboard.html', {'error': 'Unable to fetch data'})
+
+def admin_login(request):
+    return render(request, 'data/login.html')
+
+def signup(request):
+    return render(request, 'data/signup.html')
+
+
+def get_filtered_data(request, filter_type, filter_value):
+    try:
+        # Filter based on the filter type and value
+        if filter_type == "hotel":
+            # Correct field name is hotel__hotel_name
+            filtered_reservations = Reservations.objects.filter(hotel__hotel_name=filter_value)
+        elif filter_type == "reservation_status":
+            # Correct field name is reservation_status
+            filtered_reservations = Reservations.objects.filter(reservation_status=filter_value)
+        elif filter_type == "countries":
+            # Correct field name is customer__country
+            filtered_reservations = Reservations.objects.filter(customer__country=filter_value)
+        elif filter_type == "customer_type":
+            # Correct field name is customer_type in the Reservations model
+            filtered_reservations = Reservations.objects.filter(customer_type=filter_value)
+        # elif filter_type == "agent":
+        #     # Correct field name is agent__agent_name
+        #     filtered_reservations = Reservations.objects.filter(agent__agent_name=filter_value)
+        else:
+            return JsonResponse({'error': 'Invalid filter type'}, status=400)
+        
+        # Return the count of filtered data
+        count = filtered_reservations.count()
+        return JsonResponse({'count': count})
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

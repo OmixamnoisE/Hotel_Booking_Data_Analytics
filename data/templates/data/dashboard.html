@@ -1,0 +1,289 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard Overview{% endblock %}
+
+{% block content %}
+    <div class="bg-white min-h-screen py-12 px-6">
+        <div class="bg-gray-300 p-8 rounded-lg shadow-lg mx-auto max-w-7xl">
+
+            {% if user.is_authenticated %}
+                <a href="{% url 'logout' %}" 
+                   class="absolute top-8 right-12 bg-red-600 text-white text-sm px-4 py-2 rounded-md shadow-md hover:bg-red-800 transition duration-300" 
+                   onclick="return confirmLogout();">
+                    Logout
+                </a>
+            {% else %}
+                <a href="{% url 'login' %}" class="bg-blue-600 text-white text-sm px-4 py-2 rounded-md shadow-md hover:bg-blue-800 transition duration-300">Login</a>
+            {% endif %}
+
+            <h1 class="text-3xl font-bold text-center text-black mb-6">Dashboard Overview</h1>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
+                <div class="bg-white p-5 rounded-lg shadow-md">
+                    <h2 class="text-lg font-semibold text-black">Total Agents</h2>
+                    <p class="text-3xl font-bold" style="color: #000080;">{{ agent_count }}</p>
+                </div>
+                <div class="bg-white p-5 rounded-lg shadow-md">
+                    <h2 class="text-lg font-semibold text-black">Total Companies</h2>
+                    <p class="text-3xl font-bold" style="color: #000080;">{{ company_count }}</p>
+                </div>
+                <div class="bg-white p-5 rounded-lg shadow-md">
+                    <h2 class="text-lg font-semibold text-black">Total Customers</h2>
+                    <p class="text-3xl font-bold" style="color: #000080;">{{ customer_count }}</p>
+                </div>
+                <div class="bg-white p-5 rounded-lg shadow-md">
+                    <h2 class="text-lg font-semibold text-black">Total Hotels</h2>
+                    <p class="text-3xl font-bold" style="color: #000080;">{{ hotel_count }}</p>
+                </div>
+                <div class="bg-white p-5 rounded-lg shadow-md">
+                    <h2 class="text-lg font-semibold text-black">Total Reservations</h2>
+                    <p class="text-3xl font-bold" style="color: #000080;">{{ reservation_count }}</p>
+                </div>
+                <div class="bg-white p-5 rounded-lg shadow-md">
+                    <h2 class="text-lg font-semibold text-black">Repeat Guests</h2>
+                    <p class="text-3xl font-bold" style="color: #000080;">{{ repeat_guest_count }}</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="bg-white p-5 rounded-lg shadow-md mt-6">
+                    <h2 class="text-xl font-semibold text-black">Reservation Status Distribution</h2>
+                    <canvas id="reservationStatusChart" class="mt-3 h-48"></canvas>
+                </div>
+                <div class="bg-white p-5 rounded-lg shadow-md mt-6">
+                    <h2 class="text-xl font-semibold text-black">Guest Composition by Age Group</h2>
+                    <canvas id="ageCompositionChart" class="mt-3 h-48"></canvas>
+                </div>
+                <div class="bg-white p-5 rounded-lg shadow-lg mt-6 lg:col-span-2">
+                    <h2 class="text-xl font-semibold text-black">Room Type Analysis</h2>
+                    <canvas id="roomTypeChart" class="mt-3 h-48"></canvas>
+                </div>
+                <div class="bg-white p-5 rounded-lg shadow-md mt-6 sm:col-span-2 lg:col-span-4">
+                    <h2 class="text-xl font-semibold text-black">Country Reservations</h2>
+                    <canvas id="countryDataChart" class="mt-3 h-48"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+
+    <script>
+
+        function confirmLogout() {
+            return confirm("Are you sure you want to logout?");
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const cancelledPercent = {{ cancelled_percent|default:0 }};
+            const checkedOutPercent = {{ checked_out_percent|default:0 }};
+            const noShowPercent = {{ no_show_percent|default:0 }};
+
+            const countryData = {{ country_data|safe }};  
+
+            const labels = Object.keys(countryData); 
+            const values = Object.values(countryData);  
+
+            const sortedData = labels
+                .map((label, index) => ({ label, value: values[index] }))
+                .sort((a, b) => a.label.localeCompare(b.label));  
+
+            const sortedLabels = sortedData.map(item => item.label);
+            const sortedValues = sortedData.map(item => item.value);
+
+            const assignedRoomData = {{ assigned_room_data|safe }};
+            const reservedRoomData = {{ reserved_room_data|safe }};
+
+            const assignedRoomLabels = Object.keys(assignedRoomData);
+            const assignedRoomValues = Object.values(assignedRoomData);
+
+            const reservedRoomLabels = Object.keys(reservedRoomData);
+            const reservedRoomValues = Object.values(reservedRoomData);
+
+            const allRoomLabels = [...new Set([...assignedRoomLabels, ...reservedRoomLabels])];
+            const allAssignedRoomValues = allRoomLabels.map(label => assignedRoomData[label] || 0);
+            const allReservedRoomValues = allRoomLabels.map(label => reservedRoomData[label] || 0);
+
+
+            const countryCtx = document.getElementById('countryDataChart').getContext('2d');
+            const countryChart = new Chart(countryCtx, {
+                type: 'line',
+                data: {
+                    labels: sortedLabels,
+                    datasets: [{
+                        label: 'Reservations',
+                        data: sortedValues,
+                        backgroundColor: 'rgba(0, 0, 128, 0.2)',
+                        borderColor: '#000080',
+                        borderWidth: 2, 
+                        tension: 0.4 
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            const ageGroupData = {{ age_group_data|safe }};
+            const agelabels = Object.keys(ageGroupData);
+            const agevalues = Object.values(ageGroupData);
+
+            const ageCtx = document.getElementById('ageCompositionChart').getContext('2d');
+            const ageChart = new Chart(ageCtx, {
+                type: 'pie',
+                data: {
+                    labels: agelabels,
+                    datasets: [{
+                        label: 'Guests by Age Category',
+                        data: agevalues,
+                        backgroundColor: ['#FF8C00', '#FF0000', '#000080'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(tooltipItem) {
+                                    return `${tooltipItem.label}: ${tooltipItem.raw}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const reservationStatusData = {
+                labels: [ 'Checked Out', 'Cancelled', 'No Show'],
+                values:  [{{ checked_out_percent|floatformat:2 }}, {{ cancelled_percent|floatformat:2 }}, {{ no_show_percent|floatformat:2 }}]
+            };
+
+            const reservationStatusCtx = document.getElementById('reservationStatusChart').getContext('2d');
+            const reservationStatusChart = new Chart(reservationStatusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: reservationStatusData.labels,
+                    datasets: [{
+                        label: 'Reservation Status Distribution',
+                        data: reservationStatusData.values,
+                        backgroundColor: ['#000080', '#FF8C00', '#FF0000'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(tooltipItem) {
+                                    const value = tooltipItem.raw;
+                                    const total = tooltipItem.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(2);
+                                    return `${tooltipItem.label}: ${percentage}%`;
+                                }
+                            }
+                        },
+                        datalabels: {
+                            color: '#fff',
+                            font: {
+                                weight: 'bold',
+                                size: 14
+                            },
+                            formatter: function(value, context) {
+                                const total = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(2);
+                                return `${percentage}%`;
+                            },
+                            anchor: 'center',
+                            align: 'center'
+                        }
+                    }
+                }
+            });
+
+
+            const roomTypeCtx = document.getElementById('roomTypeChart').getContext('2d');
+            const roomTypeChart = new Chart(roomTypeCtx, {
+                type: 'bar', 
+                data: {
+                    labels: allRoomLabels, 
+                    datasets: [
+                        {
+                            label: 'Assigned Room Types',
+                            data: allAssignedRoomValues,
+                            backgroundColor: 'rgba(0, 0, 128, 0.2)', 
+                            borderColor: '#000080', 
+                            borderWidth: 2,
+                            pointBackgroundColor: '#000080', 
+                            pointRadius: 5,
+                            tension: 0.4 
+                        },
+                        {
+                            label: 'Reserved Room Types',
+                            data: allReservedRoomValues,
+                            backgroundColor: 'rgba(255, 0, 0, 0.2)', 
+                            borderColor: '#FF0000',
+                            borderWidth: 2,
+                            pointBackgroundColor: '#FF0000', 
+                            pointRadius: 5,
+                            tension: 0.4 
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: {
+                            beginAtZero: true 
+                        },
+                        y: {
+                            beginAtZero: true,
+                            suggestedMin: 0,
+                            suggestedMax: Math.max(...allAssignedRoomValues, ...allReservedRoomValues) 
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(tooltipItem) {
+                                    return tooltipItem.label + ': ' + tooltipItem.raw + ' units';
+                                }
+                            }
+                        },
+                        datalabels: {
+                            align: 'center', 
+                            anchor: 'start',
+                            color: '#000000',
+                            font: {
+                                weight: 'bold',
+                                size: 14
+                            },
+                            formatter: function(value) {
+                                return value + ' units';
+                            },
+                            offset: 5 
+                        }
+                    }
+                }
+            });
+
+
+        });
+    </script>
+{% endblock %}

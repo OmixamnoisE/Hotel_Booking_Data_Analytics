@@ -1,0 +1,493 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard Overview{% endblock %}
+
+{% block content %}
+    <div class="bg-gradient-to-r from-blue-500 to-purple-600 min-h-screen py-12 px-6">
+        <div class="bg-white p-8 rounded-lg shadow-lg mx-auto max-w-7xl">
+            <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Dashboard Overview</h1>
+
+            
+                    <!-- Dropdown Filters -->
+            <div class="flex flex-wrap gap-4">
+                <!-- Hotel Dropdown -->
+                <!-- Hotel Dropdown -->
+                <select name="hotel" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-lg shadow-sm" data-filter-type="hotel">
+                    <option selected disabled>Filter by Hotel</option>
+                    {% for hotel in hotels %}
+                        <option value="{{ hotel }}">{{ hotel }}</option>
+                    {% endfor %}
+                </select>
+                
+                <select name="reservation_status" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-lg shadow-sm" data-filter-type="reservation_status">
+                    <option selected disabled>Filter by Reservation Status</option>
+                    {% for status in reservation_statuses %}
+                        <option value="{{ status }}">{{ status }}</option>
+                    {% endfor %}
+                </select>
+                
+                <select name="country" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-lg shadow-sm" data-filter-type="country">
+                    <option selected disabled>Filter by Country</option>
+                    {% for country in country %}
+                        <option value="{{ country }}">{{ country }}</option>
+                    {% endfor %}
+                </select>
+                
+                <select name="customer_type" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-lg shadow-sm" data-filter-type="customer_type">
+                    <option selected disabled>Filter by Customer Type</option>
+                    {% for type in customer_types %}
+                        <option value="{{ type }}">{{ type }}</option>
+                    {% endfor %}
+                </select>
+                
+                <select name="agent" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-lg shadow-sm" data-filter-type="agent">
+                    <option selected disabled>Filter by Agent</option>
+                    {% for agent in agents %}
+                        <option value="{{ agent }}">{{ agent }}</option>
+                    {% endfor %}
+                </select>
+
+                <button id="filterSubmitBtn" class="bg-blue-500 text-white py-2 px-4 rounded-lg shadow-md">Apply Filters</button>
+
+            
+                <!-- Dashboard Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
+                    <!-- Card 1: Total Agents -->
+                    <div class="bg-white p-5 rounded-lg shadow-md">
+                        <h2 class="text-lg font-semibold text-gray-700">Total Agents</h2>
+                        <p class="text-3xl font-bold text-blue-600">{{ agent_count }}</p>
+                    </div>
+            
+                    <!-- Card 2: Total Companies -->
+                    <div class="bg-white p-5 rounded-lg shadow-md">
+                        <h2 class="text-lg font-semibold text-gray-700">Total Companies</h2>
+                        <p class="text-3xl font-bold text-blue-600">{{ company_count }}</p>
+                    </div>
+            
+                    <!-- Card 3: Total Customers -->
+                    <div class="bg-white p-5 rounded-lg shadow-md">
+                        <h2 class="text-lg font-semibold text-gray-700">Total Customers</h2>
+                        <p class="text-3xl font-bold text-blue-600">{{ customer_count }}</p>
+                    </div>
+            
+                    <!-- Card 4: Total Hotels -->
+                    <div class="bg-white p-5 rounded-lg shadow-md">
+                        <h2 class="text-lg font-semibold text-gray-700">Total Hotels</h2>
+                        <p class="text-3xl font-bold text-blue-600">{{ hotel_count }}</p>
+                    </div>
+
+                    <!-- Card 5: Total Reservations -->
+                    <div class="bg-white p-5 rounded-lg shadow-md">
+                        <h2 class="text-lg font-semibold text-gray-700">Total Reservations</h2>
+                        <p class="text-3xl font-bold text-blue-600">{{ reservation_count }}</p>
+                    </div>
+    
+                    <!-- Card 6: Repeated Guests -->
+                    <div class="bg-white p-5 rounded-lg shadow-md">
+                        <h2 class="text-lg font-semibold text-gray-700">Repeat Guests</h2>
+                        <p class="text-3xl font-bold text-blue-600">{{ repeat_guest_count }}</p>
+                    </div>
+
+                    <!-- Hotel Filter Card -->
+                    <div class="bg-white p-5 rounded-lg shadow-md" id="hotel_card">
+                        <h2 class="text-lg font-semibold text-gray-700">Hotel Reservations</h2>
+                        <p class="text-3xl font-bold text-blue-600" id="hotel_count">0</p> <!-- Default value -->
+                    </div>
+
+                    <!-- Reservation Status Filter Card -->
+                    <div class="bg-white p-5 rounded-lg shadow-md" id="reservation_status_card">
+                        <h2 class="text-lg font-semibold text-gray-700">Reservations by Status</h2>
+                        <p class="text-3xl font-bold text-blue-600" id="reservation_status_count">0</p>
+                    </div>
+
+                    <!-- Month Filter Card -->
+                    <div class="bg-white p-5 rounded-lg shadow-md" id="country_card">
+                        <h2 class="text-lg font-semibold text-gray-700">Reservations by Country</h2>
+                        <p class="text-3xl font-bold text-blue-600" id="month_count">0</p>
+                    </div>
+
+                    <!-- Customer Type Filter Card -->
+                    <div class="bg-white p-5 rounded-lg shadow-md" id="customer_type_card">
+                        <h2 class="text-lg font-semibold text-gray-700">Reservations by Customer Type</h2>
+                        <p class="text-3xl font-bold text-blue-600" id="customer_type_count">0</p>
+                    </div>
+
+                    <!-- Agent Filter Card -->
+                    <div class="bg-white p-5 rounded-lg shadow-md" id="agent_card">
+                        <h2 class="text-lg font-semibold text-gray-700">Reservations by Agent</h2>
+                        <p class="text-3xl font-bold text-blue-600" id="agent_count">0</p>
+                    </div>
+                </div>
+            </div>
+            
+
+            <!-- Pie Chart for Cancellation Rate -->
+            <div class="bg-white p-5 rounded-lg shadow-md mt-6">
+                <h2 class="text-xl font-semibold text-gray-700">Cancellation Rate</h2>
+                <canvas id="cancellationRateChart" class="mt-3 h-5"></canvas>
+            </div>
+
+            <!-- Visitor Statistics -->
+            <div class="bg-white p-5 rounded-lg shadow-lg mt-6">
+                <h2 class="text-xl font-semibold text-gray-700">Visitor Statistics</h2>
+                <canvas id="visitorChart" class="mt-3 h-72"></canvas>
+            </div>
+
+            <!-- Booking Trends -->
+            <div class="bg-white p-5 rounded-lg shadow-lg mt-6">
+                <h2 class="text-xl font-semibold text-gray-700">Booking Trends (Month/Week)</h2>
+                <canvas id="bookingTrendsChart" class="mt-3 h-72"></canvas>
+            </div>
+
+            <!-- Room Type Analysis -->
+            <div class="bg-white p-5 rounded-lg shadow-lg mt-6">
+                <h2 class="text-xl font-semibold text-gray-700">Room Type Analysis</h2>
+                <canvas id="roomTypeChart" class="mt-3 h-72"></canvas>
+            </div>
+
+            <!-- Reservation Per Hotel -->
+            <div class="bg-white p-5 rounded-lg shadow-lg mt-6">
+                <h2 class="text-xl font-semibold text-gray-700">Reservations Per Hotel</h2>
+                <canvas id="hotelReservationsChart" class="mt-3 h-72"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart.js Script -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+
+            
+    document.addEventListener('DOMContentLoaded', function () {
+        const hotelDropdown = document.querySelector('select[name="hotel"]');
+        const reservationStatusDropdown = document.querySelector('select[name="reservation_status"]');
+        const countryDropdown = document.querySelector('select[name="country"]');
+        const customerTypeDropdown = document.querySelector('select[name="customer_type"]');
+        const agentDropdown = document.querySelector('select[name="agent"]');
+        const submitBtn = document.querySelector('#filterSubmitBtn');
+
+        submitBtn.addEventListener('click', function (event) {
+            event.preventDefault();
+
+            const filters = {
+                hotel: hotelDropdown.value,
+                reservation_status: reservationStatusDropdown.value,
+                country: countryDropdown.value,
+                customer_type: customerTypeDropdown.value,
+                agent: agentDropdown.value
+            };
+
+            // Loop through each filter and fetch filtered data
+            Object.keys(filters).forEach((filterType) => {
+                const filterValue = filters[filterType];
+                const countId = `${filterType}_count`;
+
+                if (filterValue) {
+                    fetch(`/get_filtered_data/${filterType}/${filterValue}/`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.count !== undefined) {
+                                document.querySelector(`#${countId}`).textContent = data.count;
+                            } else if (data.error) {
+                                console.error(data.error);
+                            }
+                        })
+                        .catch(error => console.error('Error fetching filtered data:', error));
+                }
+            });
+        });
+    });
+
+
+
+        // Visitor Statistics Chart
+        const visitorData = {
+            labels: ['Daily', 'Monthly', 'Yearly'],
+            values: [{{ daily_reservations }}, {{ monthly_reservations }}, {{ yearly_reservations }}]
+        };
+
+        const visitorCtx = document.getElementById('visitorChart').getContext('2d');
+        const visitorChart = new Chart(visitorCtx, {
+            type: 'line',
+            data: {
+                labels: visitorData.labels,
+                datasets: [{
+                    label: 'Reservations',
+                    data: visitorData.values,
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Cancellation Rate Chart (Pie Chart)
+        const cancellationRateData = {
+            labels: ['Cancelled', 'Completed'],
+            values: [{{ cancelled_reservations }}, {{ completed_reservations }}]
+        };
+
+        const cancellationRateCtx = document.getElementById('cancellationRateChart').getContext('2d');
+        const cancellationRateChart = new Chart(cancellationRateCtx, {
+            type: 'pie',
+            data: {
+                labels: cancellationRateData.labels,
+                datasets: [{
+                    label: 'Cancellation Rate',
+                    data: cancellationRateData.values,
+                    backgroundColor: ['#FF5733', '#33FF57'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                },
+            }
+        });
+
+        // Booking Trends Chart
+        const bookingTrendsData = {
+            labels: ['Weekdays', 'Weekends'],
+            values: [{{ weekday_bookings }}, {{ weekend_bookings }}]
+        };
+
+        const bookingTrendsCtx = document.getElementById('bookingTrendsChart').getContext('2d');
+        const bookingTrendsChart = new Chart(bookingTrendsCtx, {
+            type: 'pie',
+            data: {
+                labels: bookingTrendsData.labels,
+                datasets: [{
+                    label: 'Booking Trends',
+                    data: bookingTrendsData.values,
+                    backgroundColor: ['#FF5733', '#33FF57'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                },
+            }
+        });
+
+        // Room Type Analysis Chart
+        const roomTypeData = {
+            labels: ['Reserved', 'Assigned'],
+            values: [{{ reserved_room_type_count }}, {{ assigned_room_type_count }}]
+        };
+
+        const roomTypeCtx = document.getElementById('roomTypeChart').getContext('2d');
+        const roomTypeChart = new Chart(roomTypeCtx, {
+            type: 'bar',
+            data: {
+                labels: roomTypeData.labels,
+                datasets: [{
+                    label: 'Room Type Analysis',
+                    data: roomTypeData.values,
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Reservations Per Hotel Chart
+        const hotelReservationsData = {
+            labels: ['Hotel 1', 'Hotel 2', 'Hotel 3'],
+            values: [{{ hotel_1_reservations }}, {{ hotel_2_reservations }}, {{ hotel_3_reservations }}]
+        };
+
+        const hotelReservationsCtx = document.getElementById('hotelReservationsChart').getContext('2d');
+        const hotelReservationsChart = new Chart(hotelReservationsCtx, {
+            type: 'bar',
+            data: {
+                labels: hotelReservationsData.labels,
+                datasets: [{
+                    label: 'Reservations per Hotel',
+                    data: hotelReservationsData.values,
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    </script>
+{% endblock %}
+
+
+
+
+
+
+
+from django.shortcuts import render
+from django.db.models import Count
+from datetime import datetime
+
+import urllib
+from .models import Agents, Hotels, Reservations, Companies, Customers, Reservations
+from django.http import JsonResponse
+
+def dashboard(request):
+    try:
+        # Overall counts
+        agent_count = Agents.objects.count()
+        company_count = Companies.objects.count()
+        customer_count = Customers.objects.count()
+        hotel_count = Hotels.objects.count()
+        reservation_count = Reservations.objects.count()
+
+
+        # Transient statistics
+        today = datetime.now().date()
+        daily_reservations = Reservations.objects.filter(reservation_status_date=today).count()
+
+        # Monthly statistics
+        first_day_of_month = today.replace(day=1)
+        monthly_reservations = Reservations.objects.filter(reservation_status_date__gte=first_day_of_month).count()
+
+        # Yearly statistics
+        first_day_of_year = today.replace(month=1, day=1)
+        yearly_reservations = Reservations.objects.filter(reservation_status_date__gte=first_day_of_year).count()
+
+        # Repeat guests
+        repeat_guest_count = Customers.objects.filter(is_repeated_guest=True).count()
+
+        # Reservations per hotel
+        reservations_per_hotel = Reservations.objects.values('hotel_id', 'hotel__hotel_name').annotate(
+            count=Count('hotel_id')).order_by('-count')
+
+        # Extracting labels and values for the reservations per hotel chart
+        hotels_labels = [item['hotel__hotel_name'] for item in reservations_per_hotel]
+        hotels_values = [item['count'] for item in reservations_per_hotel]
+
+        # Dropdown Data
+        hotels = Hotels.objects.values_list('hotel_name', flat=True).distinct()  # List of hotels
+        reservation_statuses = Reservations.objects.values_list('reservation_status', flat=True).distinct()  # Status options
+        country = Customers.objects.values_list('country', flat=True).distinct()
+        customer_types =  Reservations.objects.values_list('customer_type', flat=True).distinct()  # Customer type options
+        agents = Agents.objects.values_list('agent_name', flat=True).distinct()  # List of agents
+
+        # Prepare context to pass to the template
+        context = {
+            'agent_count': agent_count,
+            'company_count': company_count,
+            'customer_count': customer_count,
+            'hotel_count': hotel_count,
+            'reservation_count': reservation_count,
+            'daily_reservations': daily_reservations,
+            'monthly_reservations': monthly_reservations,
+            'yearly_reservations': yearly_reservations,
+            'repeat_guest_count': repeat_guest_count,  # Add repeat guest count here
+            'hotels_labels': hotels_labels,
+            'hotels_values': hotels_values,
+            'hotels': hotels,
+            'reservation_statuses': reservation_statuses,
+            'country': country,
+            'customer_types': customer_types,
+            'agents': agents,
+        }
+        return render(request, 'data/dashboard.html', context)
+
+    except Exception as e:
+        print(f"Error in dashboard view: {e}")
+        return render(request, 'data/dashboard.html', {'error': 'Unable to fetch data'})
+
+def admin_login(request):
+    return render(request, 'data/login.html')
+
+def signup(request):
+    return render(request, 'data/signup.html')
+
+
+# Example function to handle filtered data
+def get_filtered_data(request, filter_type, filter_value):
+    if filter_type == 'hotel':
+        # Filter by hotel
+        filtered_data = Reservations.objects.filter(hotel__name=filter_value)
+    elif filter_type == 'reservation_status':
+        # Filter by reservation status
+        filtered_data = Reservations.objects.filter(status=filter_value)
+    elif filter_type == 'country':
+        # Filter by country
+        filtered_data = Reservations.objects.filter(customer__country=filter_value)
+    elif filter_type == 'customer_type':
+        # Filter by customer type
+        filtered_data = Reservations.objects.filter(customer__customer_type=filter_value)
+    elif filter_type == 'agent':
+        # Filter by agent
+        filtered_data = Reservations.objects.filter(agent__name=filter_value)
+    else:
+        return JsonResponse({'error': 'Invalid filter type'}, status=400)
+
+    # Return the filtered count of the data
+    return JsonResponse({'count': filtered_data.count()})
+
+
+
+
+        # # Transient statistics
+        # today = datetime.now().date()
+        # daily_reservations = Reservations.objects.filter(reservation_status_date=today).count()
+
+        # # Calculate the daily cancellation rate
+        # daily_canceled_reservations = Reservations.objects.filter(reservation_status_date=today, is_canceled=1).count()
+        # daily_cancellation_rate = (daily_canceled_reservations / daily_reservations * 100) if daily_reservations else 0
+
+        # # Monthly statistics
+        # first_day_of_month = today.replace(day=1)
+        # monthly_reservations = Reservations.objects.filter(reservation_status_date__gte=first_day_of_month).count()
+
+        # # Calculate the monthly cancellation rate
+        # monthly_canceled_reservations = Reservations.objects.filter(reservation_status_date__gte=first_day_of_month, is_canceled=1).count()
+        # monthly_cancellation_rate = (monthly_canceled_reservations / monthly_reservations * 100) if monthly_reservations else 0
+
+        # # Yearly statistics
+        # first_day_of_year = today.replace(month=1, day=1)
+        # yearly_reservations = Reservations.objects.filter(reservation_status_date__gte=first_day_of_year).count()
+
+        # # Calculate the yearly cancellation rate
+        # yearly_canceled_reservations = Reservations.objects.filter(reservation_status_date__gte=first_day_of_year, is_canceled=1).count()
+        # yearly_cancellation_rate = (yearly_canceled_reservations / yearly_reservations * 100) if yearly_reservations else 0
+
+        # # Repeat guests
+        # repeat_guest_count = Customers.objects.filter(is_repeated_guest=True).count()
+
+        # # Reservations per hotel
+        # reservations_per_hotel = Reservations.objects.values('hotel_id', 'hotel__hotel_name').annotate(
+        #     count=Count('hotel_id')).order_by('-count')
+
+        # Extracting labels and values for the reservations per hotel chart
+        # hotels_labels = [item['hotel__hotel_name'] for item in reservations_per_hotel]
+        # hotels_values = [item['count'] for item in reservations_per_hotel]
